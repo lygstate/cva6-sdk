@@ -1,0 +1,92 @@
+From 963a84345beb91bad429e1244f3848f4b40d2ad7 Mon Sep 17 00:00:00 2001
+From: Ben Dooks <ben.dooks@codethink.co.uk>
+Date: Fri, 22 Nov 2024 13:43:04 +0000
+Subject: [PATCH 01/21] riscv: add initial kconfig and build flags for
+ big-endian
+
+Add initial kconfig and makefile updates to get a base big-endian
+build for arch/riscv. Will require header updates for IO code and
+features whcih are known to not work.
+
+Make this depend on CONFIG_EXPERIMENTAL for now as there are bits
+that have not been fully fixed to work big-endian.
+
+Signed-off-by: Ben Dooks <ben.dooks@codethink.co.uk>
+---
+ arch/riscv/Kconfig  | 22 ++++++++++++++++++++++
+ arch/riscv/Makefile | 15 ++++++++++++---
+ 2 files changed, 34 insertions(+), 3 deletions(-)
+
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index 51dcd8eaa243..2b12789a89aa 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -436,6 +436,28 @@ choice
+ 		bool "medium any code model"
+ endchoice
+ 
++choice
++	prompt "Data endian"
++	default CPU_LITTLE_ENDIAN
++	help
++	  Configure the endiannes of data access performed by the CPU.
++	  This will require system to be booted from M mode in big endian
++	  and the userland to be compiled for the same endian-ness.
++
++config CPU_BIG_ENDIAN
++	bool "Build big-endian kernel"
++	depends on EXPERT
++	help
++	  Say Y if you want to run big-endian kernel and userspace
++	  Set for expert as this experimental
++
++config CPU_LITTLE_ENDIAN
++       bool "Build little-endian kernel (default)"
++       help
++	  Say  Y if you want to run little-endian kernel and userspace
++	  This is the default for most distributions
++endchoice
++
+ config MODULE_SECTIONS
+ 	bool
+ 	select HAVE_MOD_ARCH_SPECIFIC
+diff --git a/arch/riscv/Makefile b/arch/riscv/Makefile
+index df57654a615e..ec3096fd9075 100644
+--- a/arch/riscv/Makefile
++++ b/arch/riscv/Makefile
+@@ -21,6 +21,11 @@ else
+ endif
+ endif
+ 
++ifeq ($(CONFIG_CPU_BIG_ENDIAN),y)
++KBUILD_CPPFLAGS	+= -mbig-endian -D__RISCVEB__
++CHECKFLAGS	+= -D__RISCVEB__
++endif
++
+ ifeq ($(CONFIG_CMODEL_MEDLOW),y)
+ KBUILD_CFLAGS_MODULE += -mcmodel=medany
+ endif
+@@ -28,13 +33,17 @@ endif
+ export BITS
+ ifeq ($(CONFIG_ARCH_RV64I),y)
+ 	BITS := 64
+-	UTS_MACHINE := riscv64
++	ifeq ($(CONFIG_CPU_BIG_ENDIAN),y)
++		UTS_MACHINE := riscv64_be
++		KBUILD_LDFLAGS += -melf64briscv
++	else	
++		UTS_MACHINE := riscv64
++		KBUILD_LDFLAGS += -melf64lriscv
++	endif
+ 
+ 	KBUILD_CFLAGS += -mabi=lp64
+ 	KBUILD_AFLAGS += -mabi=lp64
+ 
+-	KBUILD_LDFLAGS += -melf64lriscv
+-
+ 	KBUILD_RUSTFLAGS += -Ctarget-cpu=generic-rv64 --target=riscv64imac-unknown-none-elf \
+ 			    -Cno-redzone
+ else
+-- 
+2.51.0.windows.1
+

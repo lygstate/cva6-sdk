@@ -1,0 +1,35 @@
+From cd845f1e1c3d55a94fb7663c573f22fad2bfe2bd Mon Sep 17 00:00:00 2001
+From: Ben Dooks <ben.dooks@codethink.co.uk>
+Date: Fri, 22 Nov 2024 13:44:26 +0000
+Subject: [PATCH 02/21] riscv: update byteorder.h for big-endian
+
+Add checks for big-endian, using BYTE_ORDER as
+modern compilers should define this and anything
+that isn't is probably too old to build a system.
+
+Signed-off-by: Ben Dooks <ben.dooks@codethink.co.uk>
+---
+v2:
+- rewritten to add better __BYTE_ORDER check
+---
+ arch/riscv/include/uapi/asm/byteorder.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/arch/riscv/include/uapi/asm/byteorder.h b/arch/riscv/include/uapi/asm/byteorder.h
+index f671e16bf6af..88be4af063fb 100644
+--- a/arch/riscv/include/uapi/asm/byteorder.h
++++ b/arch/riscv/include/uapi/asm/byteorder.h
+@@ -7,6 +7,10 @@
+ #ifndef _UAPI_ASM_RISCV_BYTEORDER_H
+ #define _UAPI_ASM_RISCV_BYTEORDER_H
+ 
++#if defined(__RISCVEB__) || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
++#include <linux/byteorder/big_endian.h>
++#else
+ #include <linux/byteorder/little_endian.h>
++#endif
+ 
+ #endif /* _UAPI_ASM_RISCV_BYTEORDER_H */
+-- 
+2.51.0.windows.1
+

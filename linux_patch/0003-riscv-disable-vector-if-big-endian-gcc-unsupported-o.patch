@@ -1,0 +1,29 @@
+From be9880266325bea9e955e5280054893ffc1a2c1e Mon Sep 17 00:00:00 2001
+From: Ben Dooks <ben.dooks@codethink.co.uk>
+Date: Fri, 22 Nov 2024 13:53:58 +0000
+Subject: [PATCH 03/21] riscv: disable vector if big-endian, gcc unsupported
+ option
+
+You can't build with vector enabled at the moment so remove
+this until gcc is changed.
+
+Signed-off-by: Ben Dooks <ben.dooks@codethink.co.uk>
+---
+ arch/riscv/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index 2b12789a89aa..fd2ff278f7f1 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -656,6 +656,7 @@ config RISCV_ISA_V
+ 	bool "Vector extension support"
+ 	depends on TOOLCHAIN_HAS_V
+ 	depends on FPU
++	depends on CPU_LITTLE_ENDIAN
+ 	select DYNAMIC_SIGFRAME
+ 	default y
+ 	help
+-- 
+2.51.0.windows.1
+

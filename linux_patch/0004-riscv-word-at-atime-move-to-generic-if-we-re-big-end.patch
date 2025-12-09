@@ -1,0 +1,47 @@
+From e39d1b066b3a179fdeb745f222315253ecd51007 Mon Sep 17 00:00:00 2001
+From: Ben Dooks <ben.dooks@codethink.co.uk>
+Date: Thu, 5 Dec 2024 20:06:16 +0000
+Subject: [PATCH 04/21] riscv: word-at-atime: move to generic if we're big
+ endian
+
+Use the generic word at a time code if we're running in big endian
+for now otherwise this doesn't work. Add better support later.
+
+Signed-off-by: Ben Dooks <ben.dooks@codethink.co.uk>
+---
+ arch/riscv/include/asm/word-at-a-time.h | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/arch/riscv/include/asm/word-at-a-time.h b/arch/riscv/include/asm/word-at-a-time.h
+index 3802cda71ab7..78468f91ddcc 100644
+--- a/arch/riscv/include/asm/word-at-a-time.h
++++ b/arch/riscv/include/asm/word-at-a-time.h
+@@ -8,8 +8,13 @@
+ #ifndef _ASM_RISCV_WORD_AT_A_TIME_H
+ #define _ASM_RISCV_WORD_AT_A_TIME_H
+ 
+-
+ #include <asm/asm-extable.h>
++
++#if (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
++/* use the generic one for big-endian */
++#include <asm-generic/word-at-a-time.h>
++#else
++
+ #include <linux/bitops.h>
+ #include <linux/wordpart.h>
+ 
+@@ -47,6 +52,10 @@ static inline unsigned long find_zero(unsigned long mask)
+ /* The mask we created is directly usable as a bytemask */
+ #define zero_bytemask(mask) (mask)
+ 
++#endif /* little endian case*/
++
++
++
+ #ifdef CONFIG_DCACHE_WORD_ACCESS
+ 
+ /*
+-- 
+2.51.0.windows.1
+

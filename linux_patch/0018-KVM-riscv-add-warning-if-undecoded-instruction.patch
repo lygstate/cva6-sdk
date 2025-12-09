@@ -1,0 +1,38 @@
+From dffda0b1e12ce1bc9ae79ce703ec13b13847975b Mon Sep 17 00:00:00 2001
+From: Ben Dooks <ben.dooks@codethink.co.uk>
+Date: Thu, 23 Jan 2025 14:58:10 +0000
+Subject: [PATCH 18/21] KVM: riscv: add warning if undecoded instruction
+
+It seems a good idea if we get an undecoded instruction here to
+at-least print an error.
+
+Signed-off-by: Ben Dooks <ben.dooks@codethink.co.uk>
+---
+ arch/riscv/kvm/vcpu_insn.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/arch/riscv/kvm/vcpu_insn.c b/arch/riscv/kvm/vcpu_insn.c
+index b1edc7b10d7a..ce6ef358c9c2 100644
+--- a/arch/riscv/kvm/vcpu_insn.c
++++ b/arch/riscv/kvm/vcpu_insn.c
+@@ -557,6 +557,8 @@ int kvm_riscv_vcpu_mmio_load(struct kvm_vcpu *vcpu, struct kvm_run *run,
+ 		len = 4;
+ 		shift = 8 * (sizeof(ulong) - len);
+ 	} else {
++		pr_err("%s: insn 0x%08lx not decoded at %lx\n",
++		       __func__, insn, vcpu->arch.guest_context.sepc);
+ 		return -EOPNOTSUPP;
+ 	}
+ 
+@@ -674,6 +676,8 @@ int kvm_riscv_vcpu_mmio_store(struct kvm_vcpu *vcpu, struct kvm_run *run,
+ 		len = 4;
+ 		data32 = GET_RS2C(insn, &vcpu->arch.guest_context);
+ 	} else {
++		pr_err("%s: insn 0x%08lx not decoded at %lx\n",
++		       __func__, insn, vcpu->arch.guest_context.sepc);
+ 		return -EOPNOTSUPP;
+ 	}
+ 
+-- 
+2.51.0.windows.1
+

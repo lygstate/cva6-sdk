@@ -1,0 +1,31 @@
+From fb4e82c86780ae7742bc60dc14ed5317d2d47daf Mon Sep 17 00:00:00 2001
+From: Ben Dooks <ben.dooks@codethink.co.uk>
+Date: Thu, 12 Dec 2024 15:49:09 +0000
+Subject: [PATCH 10/21] riscv: ftrace big endian updates
+
+Make the ftrace code work with big endian by ensuring the
+instruction stream is accessed little endian.
+
+Signed-off-by: Ben Dooks <ben.dooks@codethink.co.uk>
+---
+ arch/riscv/include/asm/ftrace.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/riscv/include/asm/ftrace.h b/arch/riscv/include/asm/ftrace.h
+index 22ebea3c2b26..8d004639406b 100644
+--- a/arch/riscv/include/asm/ftrace.h
++++ b/arch/riscv/include/asm/ftrace.h
+@@ -99,8 +99,8 @@ struct dyn_arch_ftrace {
+ do {									\
+ 	unsigned int offset =						\
+ 		(unsigned long) (callee) - (unsigned long) (caller);	\
+-	call[0] = to_auipc_t0(offset);					\
+-	call[1] = to_jalr_t0(offset);					\
++	call[0] = cpu_to_le32(to_auipc_t0(offset));			\
++	call[1] = cpu_to_le32(to_jalr_t0(offset));			\
+ } while (0)
+ 
+ /*
+-- 
+2.51.0.windows.1
+

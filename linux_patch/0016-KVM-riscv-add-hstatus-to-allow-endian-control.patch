@@ -1,0 +1,66 @@
+From cd12d180fe202b640f36fca73ba38329338c20e5 Mon Sep 17 00:00:00 2001
+From: Ben Dooks <ben.dooks@codethink.co.uk>
+Date: Wed, 22 Jan 2025 14:12:19 +0000
+Subject: [PATCH 16/21] KVM: riscv: add hstatus to allow endian control
+
+---
+ arch/riscv/include/uapi/asm/kvm.h | 1 +
+ arch/riscv/kvm/vcpu_onereg.c      | 9 +++++++++
+ 2 files changed, 10 insertions(+)
+
+diff --git a/arch/riscv/include/uapi/asm/kvm.h b/arch/riscv/include/uapi/asm/kvm.h
+index ef27d4289da1..4cec75665f55 100644
+--- a/arch/riscv/include/uapi/asm/kvm.h
++++ b/arch/riscv/include/uapi/asm/kvm.h
+@@ -81,6 +81,7 @@ struct kvm_riscv_csr {
+ 	unsigned long satp;
+ 	unsigned long scounteren;
+ 	unsigned long senvcfg;
++	unsigned long hstatus;
+ };
+ 
+ /* AIA CSR registers for KVM_GET_ONE_REG and KVM_SET_ONE_REG */
+diff --git a/arch/riscv/kvm/vcpu_onereg.c b/arch/riscv/kvm/vcpu_onereg.c
+index cce6a38ea54f..25c1e43f80bc 100644
+--- a/arch/riscv/kvm/vcpu_onereg.c
++++ b/arch/riscv/kvm/vcpu_onereg.c
+@@ -484,6 +484,7 @@ static int kvm_riscv_vcpu_general_get_csr(struct kvm_vcpu *vcpu,
+ 					  unsigned long reg_num,
+ 					  unsigned long *out_val)
+ {
++	struct kvm_cpu_context *cntx = &vcpu->arch.guest_context;
+ 	struct kvm_vcpu_csr *csr = &vcpu->arch.guest_csr;
+ 
+ 	if (reg_num >= sizeof(struct kvm_riscv_csr) / sizeof(unsigned long))
+@@ -493,6 +494,8 @@ static int kvm_riscv_vcpu_general_get_csr(struct kvm_vcpu *vcpu,
+ 		kvm_riscv_vcpu_flush_interrupts(vcpu);
+ 		*out_val = (csr->hvip >> VSIP_TO_HVIP_SHIFT) & VSIP_VALID_MASK;
+ 		*out_val |= csr->hvip & ~IRQ_LOCAL_MASK;
++	} else if (reg_num == KVM_REG_RISCV_CSR_REG(hstatus)) {
++		*out_val = cntx->hstatus;
+ 	} else
+ 		*out_val = ((unsigned long *)csr)[reg_num];
+ 
+@@ -503,6 +506,7 @@ static int kvm_riscv_vcpu_general_set_csr(struct kvm_vcpu *vcpu,
+ 					  unsigned long reg_num,
+ 					  unsigned long reg_val)
+ {
++	struct kvm_cpu_context *cntx = &vcpu->arch.guest_context;
+ 	struct kvm_vcpu_csr *csr = &vcpu->arch.guest_csr;
+ 
+ 	if (reg_num >= sizeof(struct kvm_riscv_csr) / sizeof(unsigned long))
+@@ -511,6 +515,11 @@ static int kvm_riscv_vcpu_general_set_csr(struct kvm_vcpu *vcpu,
+ 	if (reg_num == KVM_REG_RISCV_CSR_REG(sip)) {
+ 		reg_val &= VSIP_VALID_MASK;
+ 		reg_val <<= VSIP_TO_HVIP_SHIFT;
++	} else if (reg_num == KVM_REG_RISCV_CSR_REG(hstatus)) {
++		/* for now only allow the S level endianness */
++		cntx->hstatus &= ~HSTATUS_VSBE;
++		cntx->hstatus |= reg_val & HSTATUS_VSBE;
++		return 0;
+ 	}
+ 
+ 	((unsigned long *)csr)[reg_num] = reg_val;
+-- 
+2.51.0.windows.1
+

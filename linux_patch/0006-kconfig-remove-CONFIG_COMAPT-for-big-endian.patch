@@ -1,0 +1,28 @@
+From fd43d3e0e506b43bdbcd97bba867f5e43d883c88 Mon Sep 17 00:00:00 2001
+From: Ben Dooks <ben.dooks@codethink.co.uk>
+Date: Fri, 22 Nov 2024 14:41:25 +0000
+Subject: [PATCH 06/21] kconfig: remove CONFIG_COMAPT for big-endian
+
+This code does not currently build with big-endian so disable it for now.
+
+Signed-off-by: Ben Dooks <ben.dooks@codethink.co.uk>
+---
+ arch/riscv/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index fd2ff278f7f1..f3e585f5cec6 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -1119,7 +1119,7 @@ config ARCH_HAS_GENERIC_CRASHKERNEL_RESERVATION
+ config COMPAT
+ 	bool "Kernel support for 32-bit U-mode"
+ 	default 64BIT
+-	depends on 64BIT && MMU
++	depends on 64BIT && MMU && !CPU_BIG_ENDIAN
+ 	help
+ 	  This option enables support for a 32-bit U-mode running under a 64-bit
+ 	  kernel at S-mode. riscv32-specific components such as system calls,
+-- 
+2.51.0.windows.1
+

@@ -1,0 +1,105 @@
+From 48e476ec50e96e3eb8148c50da4f4d6bee2528ac Mon Sep 17 00:00:00 2001
+From: Ben Dooks <ben.dooks@codethink.co.uk>
+Date: Tue, 17 Sep 2024 13:19:08 +0100
+Subject: [PATCH 11/21] riscv: traps: make insn fetch common in unknown
+ instruction
+
+Add the trapped instruction (insn) as the second argument to
+riscv_v_first_use_handler() from the trap handler so when we
+add more handlers we can do the fetch of the instruction just
+once.
+
+Signed-off-by: Ben Dooks <ben.dooks@codethink.co.uk>
+---
+- fixed wording of patch from rfc
+v2:
+  - fixed todo by going to illegal instruction error if get_user fails
+  - added pointer print for failed read
+  - fixed issues with rebasing onto main branch
+v3:
+  - removed print from v2
+  - rebased onto latest kernel
+---
+ arch/riscv/include/asm/vector.h |  4 ++--
+ arch/riscv/kernel/traps.c       |  7 +++++--
+ arch/riscv/kernel/vector.c      | 11 +----------
+ 3 files changed, 8 insertions(+), 14 deletions(-)
+
+diff --git a/arch/riscv/include/asm/vector.h b/arch/riscv/include/asm/vector.h
+index b61786d43c20..7b53aa66d5d4 100644
+--- a/arch/riscv/include/asm/vector.h
++++ b/arch/riscv/include/asm/vector.h
+@@ -43,7 +43,7 @@
+ extern unsigned long riscv_v_vsize;
+ int riscv_v_setup_vsize(void);
+ bool insn_is_vector(u32 insn_buf);
+-bool riscv_v_first_use_handler(struct pt_regs *regs);
++bool riscv_v_first_use_handler(struct pt_regs *regs, u32 insn);
+ void kernel_vector_begin(void);
+ void kernel_vector_end(void);
+ void get_cpu_vector_context(void);
+@@ -410,7 +410,7 @@ static __always_inline bool has_vector(void) { return false; }
+ static __always_inline bool insn_is_vector(u32 insn_buf) { return false; }
+ static __always_inline bool has_xtheadvector_no_alternatives(void) { return false; }
+ static __always_inline bool has_xtheadvector(void) { return false; }
+-static inline bool riscv_v_first_use_handler(struct pt_regs *regs) { return false; }
++static inline bool riscv_v_first_use_handler(struct pt_regs *regs, u32 insn) { return false; }
+ static inline bool riscv_v_vstate_query(struct pt_regs *regs) { return false; }
+ static inline bool riscv_v_vstate_ctrl_user_allowed(void) { return false; }
+ #define riscv_v_vsize (0)
+diff --git a/arch/riscv/kernel/traps.c b/arch/riscv/kernel/traps.c
+index b8b3b6073cf7..040cb2e7c511 100644
+--- a/arch/riscv/kernel/traps.c
++++ b/arch/riscv/kernel/traps.c
+@@ -172,13 +172,16 @@ DO_ERROR_INFO(do_trap_insn_fault,
+ 
+ asmlinkage __visible __trap_section void do_trap_insn_illegal(struct pt_regs *regs)
+ {
+-	bool handled;
++	bool handled = false;
+ 
+ 	if (user_mode(regs)) {
++		u32 insn = (u32)regs->badaddr;
++
+ 		irqentry_enter_from_user_mode(regs);
+ 		local_irq_enable();
+ 
+-		handled = riscv_v_first_use_handler(regs);
++		handled = riscv_v_first_use_handler(regs, insn);
++
+ 		if (!handled)
+ 			do_trap_error(regs, SIGILL, ILL_ILLOPC, regs->epc,
+ 				      "Oops - illegal instruction");
+diff --git a/arch/riscv/kernel/vector.c b/arch/riscv/kernel/vector.c
+index 184f780c932d..6cd95326bc16 100644
+--- a/arch/riscv/kernel/vector.c
++++ b/arch/riscv/kernel/vector.c
+@@ -178,11 +178,8 @@ bool riscv_v_vstate_ctrl_user_allowed(void)
+ }
+ EXPORT_SYMBOL_GPL(riscv_v_vstate_ctrl_user_allowed);
+ 
+-bool riscv_v_first_use_handler(struct pt_regs *regs)
++bool riscv_v_first_use_handler(struct pt_regs *regs, u32 insn)
+ {
+-	u32 __user *epc = (u32 __user *)regs->epc;
+-	u32 insn = (u32)regs->badaddr;
+-
+ 	if (!(has_vector() || has_xtheadvector()))
+ 		return false;
+ 
+@@ -194,12 +191,6 @@ bool riscv_v_first_use_handler(struct pt_regs *regs)
+ 	if (riscv_v_vstate_query(regs))
+ 		return false;
+ 
+-	/* Get the instruction */
+-	if (!insn) {
+-		if (__get_user(insn, epc))
+-			return false;
+-	}
+-
+ 	/* Filter out non-V instructions */
+ 	if (!insn_is_vector(insn))
+ 		return false;
+-- 
+2.51.0.windows.1
+

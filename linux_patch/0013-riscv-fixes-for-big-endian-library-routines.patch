@@ -1,0 +1,122 @@
+From 4ee099ef1295eaac1177a50871fe671fc7f16225 Mon Sep 17 00:00:00 2001
+From: Ben Dooks <ben.dooks@codethink.co.uk>
+Date: Fri, 8 Aug 2025 17:37:29 +0100
+Subject: [PATCH 13/21] riscv: fixes for big-endian library routines
+
+Update the unaligned handling of memory when in big-endian
+and the byte positions inside a loaded word change. Do this
+by wrapping the shift macros and swapping the left and right
+shfits.
+
+Signed-off-by: Ben Dooks <ben.dooks@codethink.co.uk>
+---
+ arch/riscv/lib/memmove.S | 28 ++++++++++++++++++++--------
+ arch/riscv/lib/uaccess.S | 16 ++++++++++++++--
+ 2 files changed, 34 insertions(+), 10 deletions(-)
+
+diff --git a/arch/riscv/lib/memmove.S b/arch/riscv/lib/memmove.S
+index cb3e2e7ef0ba..6971006a8eb6 100644
+--- a/arch/riscv/lib/memmove.S
++++ b/arch/riscv/lib/memmove.S
+@@ -6,6 +6,18 @@
+ #include <linux/linkage.h>
+ #include <asm/asm.h>
+ 
++#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
++#define M_SLL sll
++#define M_SRL srl
++#else
++	/* in big-endian, swap the direction of shifts to deal
++	 * with the fact the order of bytes in a word has changed
++	 * from ABCD to DCBA.
++	 */
++#define M_SLL srl
++#define M_SRL sll
++#endif
++
+ SYM_FUNC_START(__memmove)
+ 	/*
+ 	 * Returns
+@@ -133,8 +145,8 @@ SYM_FUNC_START(__memmove)
+ 	1:
+ 	REG_L t1, (1 * SZREG)(a1)
+ 	addi  t3, t3, (2 * SZREG)
+-	srl   t0, t0, a6
+-	sll   t2, t1, a7
++	M_SRL t0, t0, a6
++	M_SLL t2, t1, a7
+ 	or    t2, t0, t2
+ 	REG_S t2, ((0 * SZREG) - (2 * SZREG))(t3)
+ 
+@@ -142,8 +154,8 @@ SYM_FUNC_START(__memmove)
+ 
+ 	REG_L t0, (2 * SZREG)(a1)
+ 	addi  a1, a1, (2 * SZREG)
+-	srl   t1, t1, a6
+-	sll   t2, t0, a7
++	M_SRL t1, t1, a6
++	M_SLL t2, t0, a7
+ 	or    t2, t1, t2
+ 	REG_S t2, ((1 * SZREG) - (2 * SZREG))(t3)
+ 
+@@ -195,8 +207,8 @@ SYM_FUNC_START(__memmove)
+ 	1:
+ 	REG_L t0, (-1 * SZREG)(a4)
+ 	addi  t4, t4, (-2 * SZREG)
+-	sll   t1, t1, a7
+-	srl   t2, t0, a6
++	M_SLL t1, t1, a7
++	M_SRL t2, t0, a6
+ 	or    t2, t1, t2
+ 	REG_S t2, ( 1 * SZREG)(t4)
+ 
+@@ -204,8 +216,8 @@ SYM_FUNC_START(__memmove)
+ 
+ 	REG_L t1, (-2 * SZREG)(a4)
+ 	addi  a4, a4, (-2 * SZREG)
+-	sll   t0, t0, a7
+-	srl   t2, t1, a6
++	M_SLL t0, t0, a7
++	M_SRL t2, t1, a6
+ 	or    t2, t0, t2
+ 	REG_S t2, ( 0 * SZREG)(t4)
+ 
+diff --git a/arch/riscv/lib/uaccess.S b/arch/riscv/lib/uaccess.S
+index 4efea1b3326c..71ee4811db68 100644
+--- a/arch/riscv/lib/uaccess.S
++++ b/arch/riscv/lib/uaccess.S
+@@ -6,6 +6,18 @@
+ #include <asm/hwcap.h>
+ #include <asm/alternative-macros.h>
+ 
++#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
++#define M_SLL sll
++#define M_SRL srl
++#else
++	/* in big-endian, swap the direction of shifts to deal
++	 * with the fact the order of bytes in a word has changed
++	 * from ABCD to DCBA.
++	 */
++#define M_SLL srl
++#define M_SRL sll
++#endif
++
+ 	.macro fixup op reg addr lbl
+ 100:
+ 	\op \reg, \addr
+@@ -178,10 +190,10 @@ SYM_FUNC_START(fallback_scalar_usercopy_sum_enabled)
+ 	 */
+ 
+ 	/* At least one iteration will be executed */
+-	srl	a4, a5, t3
++	M_SRL	a4, a5, t3
+ 	fixup REG_L   a5, SZREG(a1), 10f
+ 	addi	a1, a1, SZREG
+-	sll	a2, a5, t4
++	M_SLL	a2, a5, t4
+ 	or	a2, a2, a4
+ 	fixup REG_S   a2, 0(a0), 10f
+ 	addi	a0, a0, SZREG
+-- 
+2.51.0.windows.1
+

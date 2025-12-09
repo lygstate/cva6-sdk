@@ -1,0 +1,30 @@
+From bc42ffa5e83862d000d949225ab551b5286b8b73 Mon Sep 17 00:00:00 2001
+From: Ben Dooks <ben.dooks@codethink.co.uk>
+Date: Tue, 21 Jan 2025 10:52:32 +0000
+Subject: [PATCH 15/21] KVM: riscv: set HSTATUS big endian same as build
+
+Start the guest in the same endian as the host.
+
+Signed-off-by: Ben Dooks <ben.dooks@codethink.co.uk>
+---
+ arch/riscv/kvm/vcpu.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/arch/riscv/kvm/vcpu.c b/arch/riscv/kvm/vcpu.c
+index 3ebcfffaa978..69f07361ccf2 100644
+--- a/arch/riscv/kvm/vcpu.c
++++ b/arch/riscv/kvm/vcpu.c
+@@ -75,6 +75,10 @@ static void kvm_riscv_vcpu_context_reset(struct kvm_vcpu *vcpu,
+ 	cntx->hstatus |= HSTATUS_VTW;
+ 	cntx->hstatus |= HSTATUS_SPVP;
+ 	cntx->hstatus |= HSTATUS_SPV;
++
++	/* If configured big-endian, start guest in big endian */
++	if (IS_ENABLED(CONFIG_CPU_BIG_ENDIAN))
++		cntx->hstatus |= HSTATUS_VSBE;
+ }
+ 
+ static void kvm_riscv_reset_vcpu(struct kvm_vcpu *vcpu, bool kvm_sbi_reset)
+-- 
+2.51.0.windows.1
+

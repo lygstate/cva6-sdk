@@ -1,0 +1,99 @@
+From cd4c60f93d32393efd20161f71881716e96ef7b3 Mon Sep 17 00:00:00 2001
+From: Ben Dooks <ben.dooks@codethink.co.uk>
+Date: Wed, 18 Dec 2024 11:36:41 +0000
+Subject: [PATCH 08/21] riscv: bpf: big endian fixes, updated BPF_ALU ops
+
+If running big endian then the instruction stream needs to
+be written le16/le323 and the BPF BSWAP instrictions need
+to correctly set the endian.
+
+Signed-off-by: Ben Dooks <ben.dooks@codethink.co.uk>
+---
+ arch/riscv/net/bpf_jit.h        | 14 +++++++++-----
+ arch/riscv/net/bpf_jit_comp64.c | 29 +++++++++++++++++------------
+ 2 files changed, 26 insertions(+), 17 deletions(-)
+
+diff --git a/arch/riscv/net/bpf_jit.h b/arch/riscv/net/bpf_jit.h
+index e7b032dfd17f..0191db443485 100644
+--- a/arch/riscv/net/bpf_jit.h
++++ b/arch/riscv/net/bpf_jit.h
+@@ -28,6 +28,12 @@ static inline bool rvzbb_enabled(void)
+ 	return IS_ENABLED(CONFIG_RISCV_ISA_ZBB) && riscv_has_extension_likely(RISCV_ISA_EXT_ZBB);
+ }
+ 
++static inline bool alu_end_should_swap(u32 code)
++{
++	u32 endian = IS_ENABLED(CONFIG_CPU_BIG_ENDIAN) ? BPF_FROM_BE : BPF_FROM_LE;
++	return (code & BPF_FROM_BE) != endian;
++}
++
+ enum {
+ 	RV_REG_ZERO =	0,	/* The constant value 0 */
+ 	RV_REG_RA =	1,	/* Return address */
+@@ -117,10 +123,8 @@ static inline void bpf_flush_icache(void *start, void *end)
+ /* Emit a 4-byte riscv instruction. */
+ static inline void emit(const u32 insn, struct rv_jit_context *ctx)
+ {
+-	if (ctx->insns) {
+-		ctx->insns[ctx->ninsns] = insn;
+-		ctx->insns[ctx->ninsns + 1] = (insn >> 16);
+-	}
++	if (ctx->insns)
++		put_unaligned_le32(insn, ctx->insns+ctx->ninsns);
+ 
+ 	ctx->ninsns += 2;
+ }
+@@ -131,7 +135,7 @@ static inline void emitc(const u16 insn, struct rv_jit_context *ctx)
+ 	BUILD_BUG_ON(!rvc_enabled());
+ 
+ 	if (ctx->insns)
+-		ctx->insns[ctx->ninsns] = insn;
++		ctx->insns[ctx->ninsns] = cpu_to_le16(insn);
+ 
+ 	ctx->ninsns++;
+ }
+diff --git a/arch/riscv/net/bpf_jit_comp64.c b/arch/riscv/net/bpf_jit_comp64.c
+index 9883a55d61b5..5ca8306accaf 100644
+--- a/arch/riscv/net/bpf_jit_comp64.c
++++ b/arch/riscv/net/bpf_jit_comp64.c
+@@ -1479,20 +1479,25 @@ int bpf_jit_emit_insn(const struct bpf_insn *insn, struct rv_jit_context *ctx,
+ 
+ 	/* dst = BSWAP##imm(dst) */
+ 	case BPF_ALU | BPF_END | BPF_FROM_LE:
+-		switch (imm) {
+-		case 16:
+-			emit_zexth(rd, rd, ctx);
+-			break;
+-		case 32:
+-			if (!aux->verifier_zext)
+-				emit_zextw(rd, rd, ctx);
+-			break;
+-		case 64:
+-			/* Do nothing */
+-			break;
++	case BPF_ALU | BPF_END | BPF_FROM_BE:
++		if (alu_end_should_swap(code)) {
++			emit_bswap(rd, imm, ctx);
++		} else {
++			switch (imm) {
++			case 16:
++				emit_zexth(rd, rd, ctx);
++				break;
++			case 32:
++				if (!aux->verifier_zext)
++					emit_zextw(rd, rd, ctx);
++				break;
++			case 64:
++				/* Do nothing */
++				break;
++			}
+ 		}
+ 		break;
+-	case BPF_ALU | BPF_END | BPF_FROM_BE:
++
+ 	case BPF_ALU64 | BPF_END | BPF_FROM_LE:
+ 		emit_bswap(rd, imm, ctx);
+ 		break;
+-- 
+2.51.0.windows.1
+

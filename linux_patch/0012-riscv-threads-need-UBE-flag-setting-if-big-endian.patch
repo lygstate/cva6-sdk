@@ -1,0 +1,42 @@
+From 6b337a849409eae590822f9f1eb54add4f0232c8 Mon Sep 17 00:00:00 2001
+From: Ben Dooks <ben.dooks@codethink.co.uk>
+Date: Thu, 22 May 2025 23:29:07 +0100
+Subject: [PATCH 12/21] riscv: threads need UBE flag setting if big-endian
+
+If operating in big-endian, start all threads with UBE to keep
+them the same endian as the system.
+
+Signed-off-by: Ben Dooks <ben.dooks@codethink.co.uk>
+---
+ arch/riscv/include/asm/csr.h | 1 +
+ arch/riscv/kernel/process.c  | 2 ++
+ 2 files changed, 3 insertions(+)
+
+diff --git a/arch/riscv/include/asm/csr.h b/arch/riscv/include/asm/csr.h
+index 6fed42e37705..78f795936c7e 100644
+--- a/arch/riscv/include/asm/csr.h
++++ b/arch/riscv/include/asm/csr.h
+@@ -13,6 +13,7 @@
+ #define SR_SIE		_AC(0x00000002, UL) /* Supervisor Interrupt Enable */
+ #define SR_MIE		_AC(0x00000008, UL) /* Machine Interrupt Enable */
+ #define SR_SPIE		_AC(0x00000020, UL) /* Previous Supervisor IE */
++#define SR_UBE		_AC(0x00000040, UL) /* User mode is big-endian */
+ #define SR_MPIE		_AC(0x00000080, UL) /* Previous Machine IE */
+ #define SR_SPP		_AC(0x00000100, UL) /* Previously Supervisor */
+ #define SR_MPP		_AC(0x00001800, UL) /* Previously Machine */
+diff --git a/arch/riscv/kernel/process.c b/arch/riscv/kernel/process.c
+index a0a40889d79a..c4e335b5e5f3 100644
+--- a/arch/riscv/kernel/process.c
++++ b/arch/riscv/kernel/process.c
+@@ -144,6 +144,8 @@ void start_thread(struct pt_regs *regs, unsigned long pc,
+ 	unsigned long sp)
+ {
+ 	regs->status = SR_PIE;
++	if (IS_ENABLED(CONFIG_CPU_BIG_ENDIAN))
++		regs->status |= SR_UBE;
+ 	if (has_fpu()) {
+ 		regs->status |= SR_FS_INITIAL;
+ 		/*
+-- 
+2.51.0.windows.1
+

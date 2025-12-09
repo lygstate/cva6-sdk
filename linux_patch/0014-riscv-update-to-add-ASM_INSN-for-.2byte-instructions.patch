@@ -1,0 +1,60 @@
+From 8247fb3a16721d5388fc66ace484f838388cb382 Mon Sep 17 00:00:00 2001
+From: Ben Dooks <ben.dooks@codethink.co.uk>
+Date: Fri, 30 May 2025 17:47:05 +0100
+Subject: [PATCH 14/21] riscv: update to add ASM_INSN for .2byte instructions
+
+It would seem sensible to add an ASM_INSN() wrapper for anyone to
+use for hand assembly of instructions.
+
+Signed-off-by: Ben Dooks <ben.dooks@codethink.co.uk>
+---
+ arch/riscv/include/asm/asm.h      |  6 ++++++
+ arch/riscv/include/asm/insn-def.h | 15 ++++-----------
+ 2 files changed, 10 insertions(+), 11 deletions(-)
+
+diff --git a/arch/riscv/include/asm/asm.h b/arch/riscv/include/asm/asm.h
+index 2a16e88e13de..c5cd47f84044 100644
+--- a/arch/riscv/include/asm/asm.h
++++ b/arch/riscv/include/asm/asm.h
+@@ -12,6 +12,12 @@
+ #define __ASM_STR(x)	#x
+ #endif
+ 
++#ifndef CONFIG_AS_HAS_INSN
++#define ASM_INSN(__x) ".4byte " __x
++#else
++#define ASM_INSN(__x) ".insn " __x
++#endif
++
+ #if __riscv_xlen == 64
+ #define __REG_SEL(a, b)	__ASM_STR(a)
+ #elif __riscv_xlen == 32
+diff --git a/arch/riscv/include/asm/insn-def.h b/arch/riscv/include/asm/insn-def.h
+index 2a3019bc1a3b..0677d3bee40c 100644
+--- a/arch/riscv/include/asm/insn-def.h
++++ b/arch/riscv/include/asm/insn-def.h
+@@ -256,17 +256,10 @@
+ 	INSN_S(OPCODE_OP_IMM, FUNC3(6), __RS2(3),		\
+ 	       SIMM12((offset) & 0xfe0), RS1(base))
+ 
+-#ifndef CONFIG_AS_HAS_INSN
+-#define RISCV_PAUSE	".4byte 0x100000f"
+-#define ZAWRS_WRS_NTO	".4byte 0x00d00073"
+-#define ZAWRS_WRS_STO	".4byte 0x01d00073"
+-#define RISCV_NOP4	".4byte 0x00000013"
+-#else
+-#define RISCV_PAUSE	".insn 0x100000f"
+-#define ZAWRS_WRS_NTO	".insn 0x00d00073"
+-#define ZAWRS_WRS_STO	".insn 0x01d00073"
+-#define RISCV_NOP4	".insn 0x00000013"
+-#endif
++#define RISCV_PAUSE	ASM_INSN("0x100000f")
++#define ZAWRS_WRS_NTO	ASM_INSN("0x00d00073")
++#define ZAWRS_WRS_STO	ASM_INSN("0x01d00073")
++#define RISCV_NOP4	ASM_INSN("0x00000013")
+ 
+ #define RISCV_INSN_NOP4	_AC(0x00000013, U)
+ 
+-- 
+2.51.0.windows.1
+
