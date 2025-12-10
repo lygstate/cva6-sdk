@@ -92,7 +92,7 @@ rootfs/cachetest.elf: $(CC)
 
 # cool command-line tetris
 rootfs/tetris: $(CC)
-	cd ./vitetris/ && make clean && ./configure CC=$(CC) && make
+	cd ./vitetris/ && ./configure CC=$(CC) && make clean && make
 	cp ./vitetris/tetris $@
 
 $(RISCV)/vmlinux: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) $(CC) rootfs/cachetest.elf rootfs/tetris
