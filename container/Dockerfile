@@ -19,6 +19,7 @@ RUN apt-get update && \
             libelf-dev \
             libexpat-dev \
             libgmp-dev \
+            libgnutls28-dev \
             libmpc-dev \
             libmpfr-dev \
             libncurses5-dev \
