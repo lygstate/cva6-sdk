@@ -11,7 +11,8 @@ popd
 ## Build the image
 ```
 git submodule update --init --recursive
-docker run --rm -it -v `pwd`:/repo -w /repo -u $(id -u ${USER}):$(id -g ${USER}) ghcr.io/pulp-platform/ariane-sdk
+mkdir -p buildroot/output-cache
+docker run --rm -it -v $PWD/buildroot/output-cache:/home/lygstate/.cache -v `pwd`:/repo -w /repo -u $(id -u ${USER}):$(id -g ${USER}) ghcr.io/pulp-platform/ariane-sdk
 make images
 
 ```
