@@ -15,9 +15,7 @@ RUN apt-get update && \
             device-tree-compiler \
             file \
             flex \
-            g++-15 \
             gawk \
-            gcc-15 \
             git \
             gperf \
             libelf-dev \
@@ -43,6 +41,8 @@ RUN apt-get update && \
             zlib1g-dev \
             && \
     apt-get clean ; \
+    apt --fix-broken install -y; \
+    apt autoremove; \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/*
 
 RUN groupadd --gid 1000 lygstate && useradd -u 1000 -g 1000 lygstate
