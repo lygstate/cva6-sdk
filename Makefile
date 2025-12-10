@@ -17,7 +17,7 @@ NR_CORES := $(shell nproc)
 PLATFORM := fpga/ariane
 # PLATFORM := fpga/cva6-altera
 FW_FDT_PATH ?=
-sbi-mk = PLATFORM=$(PLATFORM) CROSS_COMPILE=$(TOOLCHAIN_PREFIX) $(if $(FW_FDT_PATH),FW_FDT_PATH=$(FW_FDT_PATH),)
+sbi-mk = PLATFORM=$(PLATFORM) PLATFORM_DEFCONFIG=defconfig_be CROSS_COMPILE=$(TOOLCHAIN_PREFIX) $(if $(FW_FDT_PATH),FW_FDT_PATH=$(FW_FDT_PATH),)
 ifeq ($(XLEN), 32)
 sbi-mk += PLATFORM_RISCV_ISA=rv32ima PLATFORM_RISCV_XLEN=32
 else
@@ -51,9 +51,9 @@ tests-mk         		= -j$(NR_CORES)
 buildroot-mk       		= -j$(NR_CORES)
 
 # linux image
-buildroot_defconfig = configs/buildroot$(XLEN)_defconfig
-linux_defconfig = configs/linux$(XLEN)_defconfig
-busybox_defconfig = configs/busybox$(XLEN).config
+buildroot_defconfig = configs/bjd-rvbe_defconfig
+linux_defconfig = configs/be_defconfig
+busybox_defconfig = configs/busybox.config
 
 install-dir:
 	mkdir -p $(RISCV)
