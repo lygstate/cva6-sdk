@@ -21,7 +21,7 @@ sbi-mk = PLATFORM=$(PLATFORM) PLATFORM_DEFCONFIG=defconfig_be CROSS_COMPILE=$(TO
 ifeq ($(XLEN), 32)
 sbi-mk += PLATFORM_RISCV_ISA=rv32ima PLATFORM_RISCV_XLEN=32
 else
-sbi-mk += PLATFORM_RISCV_ISA=rv64imafdc PLATFORM_RISCV_XLEN=64
+sbi-mk += PLATFORM_RISCV_ISA=rv64imafdc_zifencei PLATFORM_RISCV_XLEN=64
 endif
 
 # U-Boot options
@@ -92,7 +92,7 @@ rootfs/cachetest.elf: $(CC)
 
 # cool command-line tetris
 rootfs/tetris: $(CC)
-	cd ./vitetris/ && ./configure CC=$(CC) && make clean && make
+	cd ./vitetris/ && ./configure CC=$(CC) && make src/src-conf.mk && make clean && make
 	cp ./vitetris/tetris $@
 
 $(RISCV)/vmlinux: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) $(CC) rootfs/cachetest.elf rootfs/tetris
