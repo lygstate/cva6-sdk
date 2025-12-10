@@ -1,4 +1,7 @@
 FROM debian:trixie
+
+COPY testing.list /etc/apt/sources.list.d/testing.list 
+
 RUN apt-get update && \
     apt-get install -y \
             autoconf \
@@ -12,7 +15,9 @@ RUN apt-get update && \
             device-tree-compiler \
             file \
             flex \
+            g++-15 \
             gawk \
+            gcc-15 \
             git \
             gperf \
             libelf-dev \
