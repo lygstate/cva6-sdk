@@ -1,6 +1,6 @@
 FROM debian:trixie
 
-COPY testing.list /etc/apt/sources.list.d/testing.list 
+# COPY testing.list /etc/apt/sources.list.d/testing.list 
 
 RUN apt-get update && \
     apt-get install -y \
